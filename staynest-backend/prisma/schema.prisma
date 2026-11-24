@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  OWNER
+  SUPERADMIN
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  firstname    String
+  lastname     String
+  password     String
+  role         Role
+  phone        String
+  refreshToken String?
+  createdAt    DateTime @default(now())
+
+  hotels  Hotel[]
+  booking Booking[]
+}
+
+model Hotel {
+  id           String   @id @default(uuid())
+  ownerId      String
+  name         String
+  description  String?
+  city         String
+  country      String
+  amenities    String[] @default([])
+  images       String[] @default([])
+  rating       Decimal  @default(0.0) @db.Decimal(2, 1)
+  totalReviews Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  owner   User      @relation(fields: [ownerId], references: [id])
+  room    Room[]
+  booking Booking[]
+}
+
+model Room {
+  id            String    @id @default(uuid())
+  hotelId       String
+  roomNumber    String
+  roomType      String
+  pricePerNight Decimal   @db.Decimal(10, 2)
+  maxOccupancy  Int
+  images        String[]  @default([])
+  createdAt     DateTime  @default(now())
+  hotel         Hotel     @relation(fields: [hotelId], references: [id])
+  booking       Booking[]
+
+  @@unique([hotelId, roomNumber])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  userId       String
+  roomId       String
+  hotelId      String
+  checkInDate  DateTime      @db.Date
+  checkOutDate DateTime      @db.Date
+  guests       Int
+  totalPrice   Decimal       @db.Decimal(10, 2)
+  status       BookingStatus @default(CONFIRMED)
+  bookingDate  DateTime      @default(now())
+  cancelledAt  DateTime?
+
+  customer User  @relation(fields: [userId], references: [id])
+  room     Room  @relation(fields: [roomId], references: [id])
+  hotel    Hotel @relation(fields: [hotelId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  hotelId   String
+  bookingId String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, bookingId])
+}
